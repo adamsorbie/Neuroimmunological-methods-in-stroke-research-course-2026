@@ -1,0 +1,251 @@
+---
+title: "Metagenomic_analysis"
+output: html_document
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Intro to Microbiome analysis
+
+```{r}
+
+```
+
+Firstly, we will read the species abundance table(s) and metadata into R, using
+phyloseq. 
+
+```{r}
+
+```
+
+Phyloseq is used as it provides a nice way of storing all the associated
+data in one object or class. As you can see, the metadata and species abundance
+table are all combined here into `ps`. Importantly, each part can also
+be accessed invidivually.
+
+## Data Normalisation
+
+Here will transform the data to relative abundance (percentages), and also 
+perform a method called rarefaction for downstream analyses.
+
+### Why do we need to normalise? 
+
+```{r}
+
+```
+![library_sizes](https://github.com/user-attachments/assets/73a51c10-84b2-4a4e-86bb-b76cabcbca9d)
+
+### How does normalisation work?
+
+
+Relative, transforms each sample into compositions, on a fixed scale of
+0-1 or 0-100.
+
+```{r}
+
+```
+
+We can see how this works by looking at the column sums:
+
+```{r}
+
+```
+Rarefaction, on the other hand, works by choosing a fixed number of samples equal to or less than the sample with the lowest number of reads, then randomly discarding reads from larger samples until the remaining sample size equals this threshold.
+
+```{r}
+
+```
+```{r}
+
+```
+
+## Alpha Diversity
+
+Here we will calculate two different measures of alpha-diversity:
+
+-   Species richness, or the number of observed species
+-   Shannon effective diversity, measuring richness and evenness 
+
+The function `calc_alpha` wraps all of these calculations and only
+requires the rarified phyloseq object as input, returning a
+dataframe with a column for each above-mentioned dataframe.
+
+```{r}
+
+```
+
+### How are alpha diversity metrics calculated?
+
+Richness here is calculated as the the total number of observed species
+greater than 0.5 mss normalised abundance. This threshold is used to
+exclude noise (see Lagkouvardos et al 2017, PeerJ and Reitmeier et al
+2021, ISME Communication for a more thorough explanation).
+
+Shannon effective diversity is calculated as the exponent of the Shannon
+index:
+
+$$H = -\\sum\_{i=1}^{R} p\_i ln(p\_i)$$
+where *R* = richness, *p<sub>i</sub>* is the relative abundance of
+species *i* and *ln* is the natural logarithm.
+
+This metric accounts for both the abundance and evenness of taxa.
+
+
+### Plotting
+
+To plot the alpha diversity metrics we will use a boxplot with jittered
+points layered on top. The function `plot_boxplot`will do this for you,
+we just need to set some parameters first.
+
+Firstly, we will list the statistical comparisons we want to make, by
+creating a list of vectors. In this case we only have two groups, stroke
+and sham which can be written like: `list(c("Stroke", "Sham"))`. If we
+had an extra group, for example, “Control”, we would then have three
+comparisons to define like so:
+`list(c("Control", "Sham"), c("Control", "Stroke"), c("Sham", "Stroke"))`
+
+
+```{r}
+
+```
+
+
+
+Comparisons list
+
+```{r}
+
+```
+
+We can also specify the colours we want to use in our plots here by
+creating a named vector of colours.
+
+```{r}
+
+```
+
+To generate the plot we need to provide the dataframe, the name of the
+column containing the grouping variable (in this case "condition”),
+the name of the column containing the values to plot ("Richness"). To
+colour by group we provide the column name of the grouping variable to
+`fill_var`. We can then add the list of comparisons, some x and y-axis,
+a title if desired, and the plot colours.
+
+In instances where the alphabetical order of your group levels does not
+match the order you would like to plot them in, you can specify the order
+explicitly with the `group.order`parameter.
+
+#### Richness
+
+```{r}
+
+```
+![richness](https://github.com/user-attachments/assets/6fbb9f26-d19f-48e1-81a5-b615e5770e93)
+
+
+```{r}
+
+```
+![shannon_e](https://github.com/user-attachments/assets/0cb5fbaa-78a6-4909-82c9-ca0dfe34ed85)
+
+
+Do stroke and sham mice show any differences in alpha-diversity? 
+
+## Microbiome composition
+
+In addition to examining within sample diversity (alpha-diversity), we also
+usually want to know how different certain groups of samples are, in case, whether
+sham and stroke differ in terms of microbiota composition. 
+
+### Taxonomic composition - overview 
+
+One very simple way to do this, which can give us a fairly rough picture of whether
+our groups are different is to simply plot the taxonomic composition, looking
+at the most abundant species. 
+
+To plot composition we need to provide phyloseq object containing relative abundances, 
+the taxonomic level we would like to plot, in this case species. In addition, 
+we need to supply the group column (without quotes), 
+the number of species we would like to plot and can additionally specify several additional 
+parameters to customise the order and calculation of the most abundant taxa.
+```{r}
+
+```
+
+![taxonomic_comp](https://github.com/user-attachments/assets/1c2e2b21-b381-401b-8059-431c53a41d95)
+
+Is the taxonomic composition of stroke and sham mice different at the species level? 
+
+
+### Beta Diversity
+
+Here we will calculate beta-diversity based on Bray-Curtis
+distance and plot an ordination of this using Non-metric
+multidimensional scaling.
+
+The `calc_betadiv` function calculates a distance matrix, and an
+ordination of that matrix, returning both as a list.
+
+Various dissimilarity indices are available:
+
+-   Bray-Curtis - A count-based dissimilarity metric (beta-diversity),
+    based on the fraction of overabundant counts.
+-   Jaccard - Fraction of unique features. Does not consider abundance. 
+
+
+Similarly, there are also various ordination options:
+
+-   NMDS (default) - Non-Metric Multidimensional Scaling. An ordination
+    method which attempts to represent the dissimilarity between
+    samples, as closely as possible in a low-dimensional space.
+-   MDS/PCoA - Principal Coordinate analysis (also known as Metric
+    Multidimensional Scaling). An ordination method which attempts to
+    preserve distance between samples in a low dimensional Euclidean
+    space.
+
+```{r}
+
+```
+
+To plot beta diversity a convenience function `plot-beta_div` is
+provided. We just need to provide the phyloseq object and the betadiv 
+object from above, a grouping variable and again the colour palette, if desired.
+
+Within this function statistical testing of group separation is also
+carried out using the adonis function of vegan. This function performs a
+Permutational Multivariate Analysis of Variance or PERMANOVA test. The
+resulting R<sup>2</sup> and p-value are added to the plot in the bottom
+left.
+
+The adonis R<sup>2</sup> represents the amount of variance in microbiome 
+composition explained by the variable being tested, in this case condition. The
+accompanying p-value denotes whether or not this effect is significant. 
+
+```{r}
+
+```
+![betadiv](https://github.com/user-attachments/assets/b2533a80-6402-4a6d-968a-a893d4fdb138)
+
+What do you interpret from this plot? 
+
+## Differential abundance
+
+The final step of this pipeline is to calculate differentially abundant
+taxa between conditions.
+
+This function performs the ancom-bc test, a compositionally aware
+differential abundance method and returns significant results. As input,
+only the phyloseq object and the column name of the grouping variable is
+required.
+
+```{r}
+
+```
+
+```{r}
+
+```
+
