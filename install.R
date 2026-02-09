@@ -29,6 +29,8 @@ packages <- c(
 )
 
 pacman::p_load(char = packages)
+pacman::p_install_gh("adamsorbie/metagenomeR", upgrade_dependencies = TRUE)
+packages <- c(packages, "metagenomeR")
 uninstalled <- packages[!(packages %in% installed.packages()[, "Package"])]
 
 if (length(uninstalled) > 0) {

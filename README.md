@@ -198,7 +198,8 @@ normalise(m)
 
 So far we have covered built-in functions and custom functions, but R has a huge 
 open source library of packages called CRAN, as well as a specific repository
-for bioinformatics, called bioconductor. 
+for bioinformatics, called bioconductor. Beyond this, there are also many packages written by other researchers 
+not available on CRAN/bioconductor but can be sourced from GitHub or other repositories.
 
 ### Loading external functions
 
@@ -262,8 +263,114 @@ gentoo_bill_length <- penguins %>%
     select(bill_length_mm)
 print(gentoo_bill_length)
 ```
-Now we understand a little bit of R we are prepared for some data analysis 
-this afternoon. 
+Now we understand a little bit of R we are prepared for some data analysis
+this afternoon.
+
+### Plotting with ggplot2
+
+ggplot2 is a powerful and flexible plotting library in R, based on the "Grammar of Graphics". It builds plots layer by layer, making it easy to create complex visualisations.
+
+#### Basic structure
+
+Every ggplot2 plot starts with the `ggplot()` function, which takes a dataframe and aesthetic mappings:
+
+``` r
+ggplot(data = penguins, aes(x = bill_length_mm, y = bill_depth_mm))
+```
+
+This creates an empty plot. To actually display data, we need to add a geometry layer using `+`.
+
+#### Scatter plots with geom_point
+
+``` r
+ggplot(penguins, aes(x = bill_length_mm, y = bill_depth_mm)) +
+  geom_point()
+```
+
+We can colour points by a variable by adding `colour` inside `aes()`:
+
+``` r
+ggplot(penguins, aes(x = bill_length_mm, y = bill_depth_mm, colour = species)) +
+  geom_point()
+```
+
+#### Boxplots with geom_boxplot
+
+Boxplots are useful for comparing distributions across groups:
+
+``` r
+ggplot(penguins, aes(x = species, y = body_mass_g)) +
+  geom_boxplot()
+```
+
+We can fill boxes by group using `fill`:
+
+``` r
+ggplot(penguins, aes(x = species, y = body_mass_g, fill = species)) +
+  geom_boxplot()
+```
+
+#### Adding labels
+
+Use `labs()` to add axis labels and titles:
+
+``` r
+ggplot(penguins, aes(x = species, y = body_mass_g, fill = species)) +
+  geom_boxplot() +
+  labs(x = "Species", y = "Body Mass (g)", title = "Penguin Body Mass by Species")
+```
+
+#### Customising colours
+
+To use custom colours, create a named vector and use `scale_fill_manual()` or `scale_colour_manual()`:
+
+``` r
+penguin_cols <- c("Adelie" = "#FF6B6B", "Chinstrap" = "#4ECDC4", "Gentoo" = "#45B7D1")
+
+ggplot(penguins, aes(x = species, y = body_mass_g, fill = species)) +
+  geom_boxplot() +
+  scale_fill_manual(values = penguin_cols) +
+  labs(x = "Species", y = "Body Mass (g)")
+```
+
+#### Themes
+
+ggplot2 includes built-in themes to change the overall appearance:
+
+``` r
+ggplot(penguins, aes(x = bill_length_mm, y = bill_depth_mm, colour = species)) +
+  geom_point() +
+  theme_minimal()
+```
+
+Other useful themes include `theme_classic()`, `theme_bw()`, and `theme_light()`.
+
+### Exercise: Data wrangling and plotting
+
+Using what you have learned about filtering, selecting and ggplot2, complete the following exercise:
+
+1. Filter the penguins dataframe to include only penguins from the "Biscoe" island
+2. Select the columns: species, flipper_length_mm, and sex
+3. Remove any rows with missing values using `drop_na()`
+4. Create a violin plot (`geom_violin()`) showing flipper length by species, filled by species
+
+**Hint:** You can chain all the data wrangling steps together with the pipe operator before plotting.
+
+<details>
+<summary>Click to see solution</summary>
+
+``` r
+penguins %>%
+  filter(island == "Biscoe") %>%
+  select(species, flipper_length_mm, sex) %>%
+  drop_na() %>%
+  ggplot(aes(x = species, y = flipper_length_mm, fill = species)) +
+  geom_violin() +
+  labs(x = "Species", y = "Flipper Length (mm)", title = "Flipper Length of Biscoe Island Penguins") +
+  theme_minimal()
+```
+
+</details>
 
 ## Analysis of Microbiota data
 
@@ -272,10 +379,12 @@ mouse stool. This dataset comes from our lab but is currently not published.
 
 ## Data Analysis 
 
-Source the "Microbiome_functions.R" script. This contains functions for analysing shotgun metagenomic data which we will use today. 
+Load the metagenomeR package. This package contains functions for analysing shotgun metagenomic data which we will use today. 
 
 ``` r
-source("Microbiome_functions.R")
+library(metagenomeR)
+library(phyloseq)
+library(tidyverse)
 ```
 
 Firstly, we will read the species abundance table(s) and metadata into R, using
@@ -289,6 +398,18 @@ Phyloseq is used as it provides a nice way of storing all the associated
 data in one object or class. As you can see, the metadata and species abundance
 table are all combined here into `ps`. Importantly, each part can also
 be accessed invidivually.
+
+metagenomeR contains some helper functions for accessing the metadata in a phyloseq object 
+``` r 
+meta_to_df(ps)
+```
+
+and also the taxonomy table 
+``` r
+taxonomy(ps)
+```
+
+These objects are both dataframes and can be saved in a variable and used like any other dataframe in R. 
 
 ## Data Normalisation
 
@@ -458,7 +579,7 @@ print(p)
 Is the taxonomic composition of stroke and sham mice different at the species level? 
 
 
-### Beta Diversity
+## Beta Diversity
 
 Here we will calculate beta-diversity based on Bray-Curtis
 distance and plot an ordination of this using Non-metric
@@ -514,10 +635,9 @@ What do you interpret from this plot?
 The final step of this pipeline is to calculate differentially abundant
 taxa between conditions.
 
-This function performs the ancom-bc test, a compositionally aware
-differential abundance method and returns significant results. As input,
+This function performs runs maaslin2, a differential abundance method and returns significant results. As input,
 only the phyloseq object and the column name of the grouping variable is
-required.
+required, however we will also add an abundance and prevalence threshold to remove taxa which are not likely to be important. 
 
 ``` r
 da_taxa <- maaslin2_tax(
@@ -546,4 +666,84 @@ plot_da(da_taxa, groups = c("sham", "stroke"), cols = colour_pal)
 ![da_taxa](https://github.com/user-attachments/assets/7b481ab3-6355-4633-9d58-75a1f4d9fd7e)
 
 What can we say about microbiome changes 3 days after experimental stroke?
+
+## Exercise: Data wrangling and plotting
+
+
+Using what you have learned today, load the example data in the metagenomeR package. 
+
+To make this exercise a little easier, some of the data wrangling has already 
+been coded for you. 
+
+``` r
+data(zeller2014)
+zeller2014_filt <- subset_samples(zeller2014, AJCC_stage %in% c(-1, 4)) %>% 
+  microViz::ps_mutate(stage = case_when(AJCC_stage == -1 ~ "early",
+                              AJCC_stage == 4 ~ "late"))
+```
+
+
+1. Investigate the data structure and search for this study. What is this study is about and what are we comparing?
+2. Generate a plot of the Shannon effective diversity comparing groups
+3. Generate a plot of the beta diversity (Bray-Curtis) comparing groups
+
+**Hint:** 
+
+<details>
+<summary>Click to see solution</summary>
+
+``` r
+meta_to_df(zeller2014)
+alpha_zeller <- calc_alpha(zeller2014_filt)
+comps <- list(c("early", "late"))
+colour_pal <- c("early" = "lightgreen", "late" = "firebrick1")
+
+plot_boxplot(alpha_zeller, variable_col = "stage", value_col = "Shannon.Effective",
+             comparisons_list = comps, fill_var = "stage",
+             group.order = c("early", "late"), cols = colour_pal)
+beta_zeller <- calc_betadiv(zeller2014_filt, dist = "bray", ord_method = "NMDS")
+plot_beta_div(zeller2014_filt, beta_div = beta_zeller, group_variable="stage",cols = colour_pal)
+```
+
+</details>
+
+## Using AI for data analysis 
+
+Even among very experienced bioinformaticians, using AI tools such as Claude and chatGPT for writing code and performing data analysis, is becoming more and more common. 
+
+As of 2026, tools like Claude code are producing increasingly accurate code, and the code they generate can be used as is to perform routine analyses. Despite this these tools are not able to provide any real biological interpretation of the output and may not handle atypical analyses or edge cases well (e.g. a dataset with strong batch effects), so it is still important to understand the code and the underlying methods. 
+
+To confidently use AI in research you typically require two things: 
+1) subject expertise, to be able to assess output, and 
+2) the discpline to actually check the output is correct. 
+
+If you are someone who is just starting to learn coding or data analysis, you may not possess either of these. It can be tempting to just ask AI to do the analysis for you, but without expertise, you are likely to end up with **incorrect results or interpretations** at some point. Similarly, you might also find yourself under pressure from your supervisor or from a conference or thesis deadline which requires you to produce data. Again, it is of course tempting to let the AI do it for you, but without the discipline to verify output, you are also likely to get **wrong or misleading results**.
+
+### What can you do in this situation?
+
+At the absolute minimum. Ask whatever AI tool you are using to explain the code it is writing for you, and to provide references for any methods it uses. This will at least give you some insight into what the code is doing and allow you to check elsewhere that the methods are appropriate for your data.
+
+Other options: 
+
+1) Ask for help from someone with more experience, who can check the output for you.
+2) Asking the AI to write tests which validate analysis accuracy may be useful in some cases.
+3) Verify accuracy with known data.
+
+#### Best-practices 
+
+Create a claude-skill (or chatGPT equivalent) to guide the AI
+
+https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices
+
+Today I will show you how to generate a claude-skill which tells claude how to 
+perform alpha diversity analysis, using the package we've used today metagenomeR, 
+and we'll see how the results compare to what we got earlier. 
+
+In this case we already know what the results should look like, however if you are 
+doing this yourself with a new dataset, **validate the AI output** with another 
+dataset for which you already know the results. 
+
+
+
+
 
