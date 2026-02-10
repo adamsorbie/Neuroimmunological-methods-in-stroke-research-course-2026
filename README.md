@@ -430,7 +430,7 @@ Relative, transforms each sample into compositions, on a fixed scale of
 0-1 or 0-100.
 
 ``` r
-ps_rel <- transform(ps)
+ps_rel <- transform_tax(ps)
 ```
 
 We can see how this works by looking at the column sums:
@@ -526,16 +526,16 @@ explicitly with the `group.order`parameter.
 #### Richness
 
 ``` r
-plot_boxplot(alpha_div, variable_col = "condition", value_col = "Richness", 
-             comparisons_list = comparisons, fill_var = "condition", 
+plot_boxplot(alpha_div, variable_col = "condition", value_col = "Richness",
+             comparisons_list = comparisons, fill_var = "condition",
              group.order = c("sham", "stroke"), cols = colour_pal)
 ```
 ![richness](https://github.com/user-attachments/assets/6fbb9f26-d19f-48e1-81a5-b615e5770e93)
 
 
 ``` r
-plot_boxplot(alpha_div, variable_col = "condition", value_col = "Shannon.Effective", 
-             comparisons_list = comparisons, fill_var = "condition", 
+plot_boxplot(alpha_div, variable_col = "condition", value_col = "Shannon.Effective",
+             comparisons_list = comparisons, fill_var = "condition",
              group.order = c("sham", "stroke"), cols = colour_pal)
 ```
 ![shannon_e](https://github.com/user-attachments/assets/0cb5fbaa-78a6-4909-82c9-ca0dfe34ed85)
@@ -677,9 +677,7 @@ been coded for you.
 
 ``` r
 data(zeller2014)
-zeller2014_filt <- subset_samples(zeller2014, AJCC_stage %in% c(-1, 4)) %>% 
-  microViz::ps_mutate(stage = case_when(AJCC_stage == -1 ~ "early",
-                              AJCC_stage == 4 ~ "late"))
+zeller2014_filt <- subset_samples(zeller2014, stage %in% c("early", "late"))
 ```
 
 
@@ -728,14 +726,16 @@ Other options:
 1) Ask for help from someone with more experience, who can check the output for you.
 2) Asking the AI to write tests which validate analysis accuracy may be useful in some cases.
 3) Verify accuracy with known data.
+4) Use an biology AI agent e.g Biomni or Biochatter  
 
 #### Best-practices 
 
-Create a claude-skill (or chatGPT equivalent) to guide the AI
+Create a Claude-skill (or chatGPT equivalent) to guide the AI and subsequently 
+validate the results
 
 https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices
 
-Today I will show you how to generate a claude-skill which tells claude how to 
+Today I will show you how to generate a Claude-skill which tells Claude how to 
 perform alpha diversity analysis, using the package we've used today metagenomeR, 
 and we'll see how the results compare to what we got earlier. 
 
@@ -743,6 +743,58 @@ In this case we already know what the results should look like, however if you a
 doing this yourself with a new dataset, **validate the AI output** with another 
 dataset for which you already know the results. 
 
+A Claude skill is created using markdown, and looks like this: 
+
+![Alt text](img/claude_skills.jpg)  [](img/claude_skills.jpg)
+
+These Skills let you enhance and guide Claude with specialized knowledge and workflows 
+specific to you/your organization. 
+
+Let's try this now with the following prompt and see what Claude gives us. 
+
+"You are performing an analysis of a metagenomic dataset from mouse stool, comparing stroke mice
+ to controls. Use the R package metagenomeR to load the following files stored in a folder called 'data': 
+ 'data/mouse_stool_abundances.txt','data/mouse_stool_metadata.txt'. Calculate alpha-diversity 
+ and plot the results"
+
+#### Results 
+
+```r
+library(metagenomeR)
+library(phyloseq)
+library(tidyverse)
+```
+# Load data
+
+```r
+ps <- import_pseq_metag("data/mouse_stool_abundances.txt", 
+                        "data/mouse_stool_metadata.txt", 
+                        level = "Species")
+```
+# Calculate alpha diversity
+
+```r
+alpha_div <- calc_alpha(ps)
+```
+# Setup comparisons and colors
+
+```r
+group_comparisons <- list(c("stroke", "control"))
+colour_pal <- c("stroke" = "dodgerblue", "control" = "firebrick1")
+```
+
+# Plot richness
+
+```r
+plot_boxplot(alpha_div, variable_col = "group", value_col = "Richness",
+             comparisons_list = group_comparisons, fill_var = "group",
+             group.order = c("control", "stroke"), cols = colour_pal)
+```
+
+Pretty much exactly as above. This is a very simple case though, where the task
+and functions to use are very clearly defined. Always be mindful, that this won't
+work in every case, so in every analysis it's still important to be able to 
+understand what you are doing and why. 
 
 
 
