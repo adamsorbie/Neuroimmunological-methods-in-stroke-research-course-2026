@@ -5,7 +5,7 @@
 ## Download and install R and Rstudio
 
 Download and install the specific version of R for your OS [here:](https://ftp.fau.de/cran/)
-(If using Windows 10/11, please install [Rtools](https://cran.r-project.org/bin/windows/Rtools/rtools45/files/rtools45-6608-6492.exe) as well) 
+(If using Windows 10/11, please install [Rtools](https://cran.r-project.org/bin/windows/Rtools/rtools45/files/rtools45-6768-6492.exe) as well) 
 
 Download and install [Rstudio](https://posit.co/download/rstudio-desktop/)
 
